@@ -16,14 +16,19 @@ app = Flask(__name__)
 CORS(app)
 
 # Store reference face encoding (train with admin face)
-reference_face_encoding = None
+# reference_face_encoding = None
+
 REFERENCE_FACE_PATH = 'reference_face.npy'
+reference_face_embeddings = None
 
 def load_reference_face():
-    """Load stored reference face encoding"""
-    global reference_face_encoding
+    global reference_face_embeddings
     if os.path.exists(REFERENCE_FACE_PATH):
-        reference_face_encoding = np.load(REFERENCE_FACE_PATH)
+        reference_face_embeddings = np.load(
+            REFERENCE_FACE_PATH,
+            allow_pickle=True
+        )
+        print("Loaded embeddings:",reference_face_embeddings.shape)
         return True
     return False
 
@@ -32,8 +37,6 @@ model = DeepFace.build_model("ArcFace")
 print("Model loaded")
 
 load_reference_face()
-print("Reference loaded:", reference_face_encoding is not None)
-
 
 def save_reference_face(face_encoding):
     """Save reference face encoding for future comparisons"""
@@ -70,51 +73,12 @@ def health():
     """Health check endpoint"""
     return jsonify({'status': 'ok'})
 
-@app.route('/api/register', methods=['POST'])
-def register_face():
-    """Register/train a reference face for the user"""
-    temp_file = None
-    try:
-        data = request.json
-        image_data = data.get('image')
-
-        if not image_data:
-            return jsonify({'error': 'No image provided'}), 400
-
-        temp_file = base64_to_image_file(image_data)
-        if temp_file is None:
-            return jsonify({'error': 'Failed to process image'}), 400
-
-        # Extract face embedding using DeepFace
-        try:
-            result = DeepFace.represent(
-                img_path=temp_file,
-                model_name='ArcFace'
-            )
-
-            if isinstance(result[0], dict):
-                embedding = np.array(result[0]["embedding"])
-            else:
-                embedding = np.array(result)
-            save_reference_face(np.array(embedding))
-            global reference_face_encoding
-            reference_face_encoding = np.array(embedding)
-
-            return jsonify({'success': True, 'message': 'Face registered successfully'})
-        except ValueError:
-            return jsonify({'error': 'No face detected in image'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if temp_file and os.path.exists(temp_file):
-            os.remove(temp_file)
-
 @app.route('/api/verify', methods=['POST'])
 def verify_face():
     """Verify if the captured face matches the registered reference face"""
     temp_file = None
     try:
-        if reference_face_encoding is None:
+        if reference_face_embeddings is None:
             return jsonify({'error': 'No reference face registered'}), 400
 
         data = request.json
@@ -138,23 +102,34 @@ def verify_face():
                 embedding = np.array(result[0]["embedding"])
             else:
                 embedding = np.array(result)
-            embedding = np.array(embedding)
+            # embedding = np.array(embedding)
 
             # Calculate cosine distance between embeddings
             # DeepFace uses cosine distance; threshold of 0.4 is commonly used for Facenet512
-            distance = cosine_distance(reference_face_encoding, embedding)
+            distances = []
 
-            threshold = 0.40
+            for ref_embedding in reference_face_embeddings:
+                dist = cosine_distance(
+                    ref_embedding,
+                    embedding
+                )
+                distances.append(dist)
 
-            is_verified = distance < threshold
+            distances.sort()
 
-            similarity = 1 - distance
+            best_distance = min(distances)
+            
+            threshold = 0.25
+
+            is_verified = best_distance < threshold
+
+            similarity = 1 - best_distance
             match_percentage = similarity * 100
 
             return jsonify({
                 'verified': is_verified,
                 'similarity': round(match_percentage, 2),
-                'distance': float(distance),
+                'distance': float(best_distance),
                 'message': 'Face verified successfully' if is_verified else 'Face does not match'
             })
         except ValueError:
@@ -167,12 +142,11 @@ def verify_face():
 
 @app.route('/api/quick-detect', methods=['POST'])
 def quick_face_detect():
-    print("Reference loaded:", reference_face_encoding is not None)
     """Quick face detection and match confidence for real-time feedback"""
     temp_file = None
     try:
-        if reference_face_encoding is None:
-            return jsonify({'face_detected': False, 'confidence': 0,'debug': str(reference_face_encoding is not None)}), 200
+        if reference_face_embeddings is None:
+            return jsonify({'face_detected': False, 'confidence': 0,'debug': str(reference_face_embeddings is not None)}), 200
 
         data = request.json
         image_data = data.get('image')
@@ -188,7 +162,8 @@ def quick_face_detect():
             # Quick face detection with embedding
             results = DeepFace.represent(
                 img_path=temp_file,
-                model_name='ArcFace'
+                model_name='ArcFace',
+                detector_backend='retinaface'
             )
 
             if not results or len(results) == 0:
@@ -202,9 +177,16 @@ def quick_face_detect():
                 embedding = np.array(results[0]["embedding"])
             else:
                 embedding = np.array(results)
-            distance = cosine_distance(reference_face_encoding, embedding)
+            distances = [
+                cosine_distance(ref, embedding)
+                for ref in reference_face_embeddings
+            ]
 
-            similarity = 1 - distance
+            distances.sort()
+
+            best_distance = min(distances)
+
+            similarity = 1 - best_distance
 
             match_percentage = round(similarity * 100, 1)
 
@@ -225,7 +207,7 @@ def quick_face_detect():
             return jsonify({
                 'face_detected': True,
                 'confidence': confidence,
-                'distance': float(distance),
+                'distance': float(best_distance),
                 'quality': quality,
                 'match_percentage': round(confidence * 100, 1)
             })
@@ -238,9 +220,4 @@ def quick_face_detect():
             os.remove(temp_file)
 
 if __name__ == '__main__':
-    # Load reference face if it exists
-    # print("Loading ArcFace model...")
-    # model = DeepFace.build_model("ArcFace")
-    # print("Model loaded")
-    # load_reference_face()
     app.run(debug=True, host='0.0.0.0', port=5000)

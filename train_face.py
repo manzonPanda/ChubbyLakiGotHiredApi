@@ -34,34 +34,36 @@ def train_from_images():
         try:
             embeddings = DeepFace.represent(
                 img_path=image_path,
-                model_name='ArcFace'
+                model_name='ArcFace',
+                detector_backend='opencv'
             )
-
-            print("\nDEBUG OUTPUT")
-            print(type(embeddings))
-            print(embeddings)
-
-            if len(embeddings) > 0:
-                print("FIRST ITEM TYPE:", type(embeddings[0]))
-                print("FIRST ITEM:", embeddings[0])
 
             if len(embeddings) == 0:
                 print(f"  ⚠ No face detected in {image_file}")
             else:
                 print(f"  ✓ Face detected in {image_file}")
 
-                if isinstance(embeddings[0], dict):
-                    face_encodings.append(embeddings[0]["embedding"])
-                else:
-                    face_encodings.append(embeddings)
-            print("Embedding length:", len(face_encodings[0]))
+            if isinstance(embeddings[0], dict):
+                embedding = embeddings[0]["embedding"]
+            else:
+                embedding = embeddings
+            face_encodings.append(np.array(embedding, dtype=np.float32))
+            print("Embedding length:",len(embedding))
         except Exception as e:
             print(f"  ✗ Error processing {image_file}: {e}")
     
     if face_encodings:
         # Average multiple encodings if multiple images provided
-        reference_encoding = np.mean(face_encodings, axis=0)
-        np.save(REFERENCE_FACE_PATH, reference_encoding)
+        reference_encodings = np.array([
+            emb / np.linalg.norm(emb)
+            for emb in face_encodings
+        ])
+        np.save(
+            REFERENCE_FACE_PATH,
+            reference_encodings
+        )
+
+        print(f"Saved {len(reference_encodings)} embeddings")
         print(f"\n✓ Face model trained and saved to {REFERENCE_FACE_PATH}")
         print(f"  Used {len(face_encodings)} face encoding(s)")
     else:
