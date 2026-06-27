@@ -144,7 +144,7 @@ def verify_face():
             # DeepFace uses cosine distance; threshold of 0.4 is commonly used for Facenet512
             distance = cosine_distance(reference_face_encoding, embedding)
 
-            threshold = 0.20
+            threshold = 0.40
 
             is_verified = distance < threshold
 
