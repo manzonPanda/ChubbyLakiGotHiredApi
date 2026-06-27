@@ -163,7 +163,7 @@ def quick_face_detect():
             results = DeepFace.represent(
                 img_path=temp_file,
                 model_name='ArcFace',
-                detector_backend='retinaface'
+                detector_backend='opencv'
             )
 
             if not results or len(results) == 0:
