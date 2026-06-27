@@ -159,6 +159,7 @@ def verify_face():
 
 @app.route('/api/quick-detect', methods=['POST'])
 def quick_face_detect():
+    print("Reference loaded:", reference_face_encoding is not None)
     """Quick face detection and match confidence for real-time feedback"""
     temp_file = None
     try:
