@@ -164,7 +164,7 @@ def quick_face_detect():
     temp_file = None
     try:
         if reference_face_encoding is None:
-            return jsonify({'face_detected': False, 'confidence': 0}), 200
+            return jsonify({'face_detected': False, 'confidence': 0,'debug': str(reference_face_encoding is not None)}), 200
 
         data = request.json
         image_data = data.get('image')
