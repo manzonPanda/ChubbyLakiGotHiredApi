@@ -27,6 +27,14 @@ def load_reference_face():
         return True
     return False
 
+print("Loading ArcFace model...")
+model = DeepFace.build_model("ArcFace")
+print("Model loaded")
+
+load_reference_face()
+print("Reference loaded:", reference_face_encoding is not None)
+
+
 def save_reference_face(face_encoding):
     """Save reference face encoding for future comparisons"""
     np.save(REFERENCE_FACE_PATH, face_encoding)
@@ -231,8 +239,8 @@ def quick_face_detect():
 
 if __name__ == '__main__':
     # Load reference face if it exists
-    print("Loading ArcFace model...")
-    model = DeepFace.build_model("ArcFace")
-    print("Model loaded")
-    load_reference_face()
+    # print("Loading ArcFace model...")
+    # model = DeepFace.build_model("ArcFace")
+    # print("Model loaded")
+    # load_reference_face()
     app.run(debug=True, host='0.0.0.0', port=5000)
