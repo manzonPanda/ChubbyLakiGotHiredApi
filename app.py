@@ -200,15 +200,15 @@ def quick_face_detect():
 
             # Determine match quality
             if match_percentage >= 90:
-                quality = "Excellent Match"
+                quality = "Excellent"
             elif match_percentage >= 80:
-                quality = "Strong Match"
-            elif match_percentage >= 70:
-                quality = "Good Match"
+                quality = "Strong"
             elif match_percentage >= 60:
-                quality = "Weak Match"
+                quality = "Good"
+            elif match_percentage >= 50:
+                quality = "Weak"
             else:
-                quality = "No Match"
+                quality = "Not Chubby liit"
 
             return jsonify({
                 'face_detected': True,
