@@ -15,10 +15,12 @@ import traceback
 from datetime import datetime
 import cloudinary
 import cloudinary.uploader
+from dotenv import load_dotenv
 
 
 app = Flask(__name__)
 CORS(app)
+
 
 # Store reference face encoding (train with admin face)
 # reference_face_encoding = None
@@ -28,10 +30,11 @@ reference_face_embeddings = None
 # UPLOAD_FOLDER = "recordings"
 folder = datetime.now().strftime("reaction-videos/%Y/%m/%d")
 
+load_dotenv()
 cloudinary.config(
-    cloud_name="domegt39l",
-    api_key="952995472733882",
-    api_secret="ikPqAoeIjMZm1EGjffiPGYJI5ac",
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True
 )
 
