@@ -4,6 +4,7 @@ deepface==0.0.93
 opencv-python-headless==4.10.0.84
 gunicorn==23.0.0
 cloudinary
+python-dotenv
 
 tensorflow==2.16.1
 tf-keras==2.16.0
