@@ -11,6 +11,7 @@ import tempfile
 # from scipy.spatial.distance import cosine
 import threading
 import json
+import traceback
 
 app = Flask(__name__)
 CORS(app)
@@ -135,7 +136,11 @@ def verify_face():
         except ValueError:
             return jsonify({'error': 'No face detected in image'}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        traceback.print_exc()
+        print("VERIFY ERROR:", repr(e))
+        return jsonify({
+            "error": str(e)
+        }), 500
     finally:
         if temp_file and os.path.exists(temp_file):
             os.remove(temp_file)
