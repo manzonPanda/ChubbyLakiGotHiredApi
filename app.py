@@ -12,6 +12,10 @@ import tempfile
 import threading
 import json
 import traceback
+from datetime import datetime
+import cloudinary
+import cloudinary.uploader
+
 
 app = Flask(__name__)
 CORS(app)
@@ -21,6 +25,16 @@ CORS(app)
 
 REFERENCE_FACE_PATH = 'reference_face.npy'
 reference_face_embeddings = None
+# UPLOAD_FOLDER = "recordings"
+folder = datetime.now().strftime("reaction-videos/%Y/%m/%d")
+
+cloudinary.config(
+    cloud_name="domegt39l",
+    api_key="952995472733882",
+    api_secret="ikPqAoeIjMZm1EGjffiPGYJI5ac",
+    secure=True
+)
+
 
 def load_reference_face():
     global reference_face_embeddings
@@ -224,6 +238,26 @@ def quick_face_detect():
     finally:
         if temp_file and os.path.exists(temp_file):
             os.remove(temp_file)
+
+
+@app.route("/api/upload-video", methods=["POST"])
+def upload_video():
+
+    if "video" not in request.files:
+        return jsonify({"error": "No video"}), 400
+
+    video = request.files["video"]
+
+    result = cloudinary.uploader.upload(
+        video,
+        resource_type="video",
+        folder=folder
+    )
+
+    return jsonify({
+        "success": True,
+        "url": result["secure_url"]
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
