@@ -122,13 +122,14 @@ def verify_face():
             
             threshold = 0.25
 
-            is_verified = best_distance < threshold
+            is_verified = bool(best_distance < threshold)
 
             similarity = 1 - best_distance
             match_percentage = similarity * 100
 
             return jsonify({
                 'verified': is_verified,
+                'confidence': similarity,
                 'similarity': round(match_percentage, 2),
                 'distance': float(best_distance),
                 'message': 'Face verified successfully' if is_verified else 'Face does not match'
